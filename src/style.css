@@ -1,5 +1,5 @@
 :root {
-  font-family:Inter,'Avenir Next','Hiragino Kaku Gothic ProN','Yu Gothic',Meiryo,sans-serif;
+  font-family:Inter,'Avenir Next','Hiragino Kaku Gothic ProN','Yu Gothic','Noto Sans CJK JP',Meiryo,sans-serif;
   color:#243d36;
   background:#f5f6f2;
   font-synthesis:none;
@@ -1062,6 +1062,8 @@ dialog .play-button {
   margin-top:10px;
 }
 .skip {
+  opacity:0;
+  pointer-events:none;
   position:fixed;
   top:-50px;
   left:10px;
@@ -1070,6 +1072,8 @@ dialog .play-button {
   padding:8px;
 }
 .skip:focus {
+  opacity:1;
+  pointer-events:auto;
   top:8px;
 }
 .sr-only {
@@ -1451,4 +1455,16 @@ dialog .play-button {
   .preset { display:inline-flex; width:calc(33.333% - 4px); font-size:8px; padding:13px 0 0; }
   .preset-icon, .preset small, .preset>span:last-child { display:none; }
   .preset>span:nth-child(2) { border-bottom:1px solid #cbd8c1; padding-bottom:3px; }
+}
+
+/* Keep primary Japanese labels readable at compact desktop sizes. */
+.muted, .tool-hint, .gate-tool strong, .sound-settings select { font-size:11px; }
+.preset { font-size:11px; }
+.preset small, .gate-tool small { font-size:10px; }
+.insight p, .prob-footnote { font-size:10px; }
+@media (max-width:640px) {
+  .tool-hint, .preset { font-size:10px; }
+  .sound-settings select { font-size:10px; }
+  .preset { width:calc(33.333% - 4px); }
+  .cell { width:40px; height:40px; }
 }

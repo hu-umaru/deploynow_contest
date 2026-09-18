@@ -59,10 +59,13 @@ try {
   await page.locator('[data-preset="dream"]').click();
   await page.locator('#measure').click();
   await mkdir('test-results', { recursive: true });
+  await page.waitForSelector('#toast:not(.visible)');
+  await page.locator('.topbar').scrollIntoViewIfNeeded();
   await page.screenshot({ path: 'test-results/desktop.png', fullPage: true });
   await page.setViewportSize({ width: 390, height: 844 }); await page.waitForTimeout(100);
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
   await page.locator('[data-gate="X"]').click(); await page.locator('[data-q="0"][data-col="0"]').click();
+  await page.locator('.topbar').scrollIntoViewIfNeeded();
   await page.screenshot({ path: 'test-results/mobile.png', fullPage: true });
   const traversal = await page.request.get(`${url}/.git/config`); assert.equal(traversal.status(), 404);
   assert.deepEqual(errors, []);

@@ -21,6 +21,8 @@ jobs:
       - name: Install browser test tooling (not an application dependency)
         run: npm install --no-save --package-lock=false playwright@1.58.2
       - run: npx playwright install --with-deps chromium
+      - name: Install Japanese fonts for visual checks
+        run: sudo apt-get install -y fonts-noto-cjk
       - name: Browser integration tests
         run: |
           npm start > /tmp/quantum-beat-server.log 2>&1 &
