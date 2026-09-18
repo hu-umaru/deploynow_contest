@@ -1,0 +1,16 @@
+{
+  "name": "quantum-beat-studio",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Five qubits, four bars, infinite little discoveries.",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "dev": "node scripts/serve.mjs",
+    "start": "node scripts/serve.mjs dist",
+    "build": "node scripts/build.mjs",
+    "test": "node --test tests/*.test.js",
+    "test:e2e": "node tests/browser.mjs",
+    "check": "node scripts/check.mjs"
+  }
+}
