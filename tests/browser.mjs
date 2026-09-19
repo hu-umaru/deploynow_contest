@@ -68,7 +68,8 @@ try {
   await page.waitForFunction(() => document.querySelector('#playback-mode').textContent.includes('B 量子'), null, { timeout: 10000 });
   await page.locator('#stop').click(); assert.equal(await page.locator('.result.active').count(), 0);
   await page.locator('#play').click();
-  await page.waitForSelector('[data-result="1"].active', { timeout: 2000 });
+  // A beat lasts only 333 ms here; poll each animation frame, not locator backoff intervals.
+  await page.waitForFunction(() => document.querySelector('[data-result="1"]').classList.contains('active'), null, { timeout: 3000, polling: 'raf' });
   assert.equal(await page.locator('[data-beat="1"]').getAttribute('aria-pressed'), 'true');
   await page.locator('#stop').click();
   await page.locator('#play').click(); await page.locator('#stop').click();
