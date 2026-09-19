@@ -1,5 +1,5 @@
-import { noteEvents } from './project.js';
-import { probabilities, sample, simulate } from './quantum.js';
+import { encoding, noteEvents, originalEvents } from './project.js';
+import { measureStep } from './sequencer.js';
 
 /** Audio-clock scheduler: short lookahead, cancellable nodes, no remote samples. */
 export class Player {
@@ -9,7 +9,7 @@ export class Player {
   timers = new Set();
   playing = false;
   generation = 0;
-  async start(project, onBar) {
+  async start(project, onStep, mode = 'quantum') {
     this.stop();
     const generation = this.generation;
     if (!this.context) {
@@ -22,39 +22,52 @@ export class Player {
     if (generation !== this.generation) return;
     this.playing = true;
     this.master.gain.setValueAtTime(project.volume * 0.55, this.context.currentTime);
-    const distributions = project.bars.map(bar => probabilities(simulate(bar)));
-    let bar = 0, next = this.context.currentTime + 0.08;
-    const duration = 240 / project.bpm;
+    const encoded = encoding(project);
+    let count = 0, previous = 0, next = this.context.currentTime + 0.08;
+    const duration = 60 / project.bpm;
     const tick = () => {
       if (!this.playing) return;
       while (next < this.context.currentTime + 0.15) {
-        const current = bar % 4;
-        const index = project.recording ? project.recording[current] : sample(distributions[current]);
-        for (const event of noteEvents(index, project, next)) this.note(event, project.voice);
+        const step = count % 16;
+        const playingMode = mode === 'compare' ? Math.floor(count / 16) % 2 === 0 ? 'original' : 'quantum' : mode;
+        const index = playingMode === 'original' ? null : project.recording ? project.recording[step] : measureStep(project, step, previous, Math.random, encoded);
+        if (index !== null) previous = index;
+        const events = playingMode === 'original' ? originalEvents(project, step, next) : noteEvents(index, project, step, next, encoded);
+        for (const event of events) this.note(event, project.voice);
         const scheduled = next;
         const timer = setTimeout(() => {
           this.timers.delete(timer);
-          if (this.playing) onBar(current, index, scheduled, duration);
+          if (this.playing) onStep({ step, index, mode: playingMode, scheduled, duration });
         }, Math.max(0, (next - this.context.currentTime) * 1000));
         this.timers.add(timer);
-        next += duration; bar++;
+        next += duration; count++;
       }
     };
     tick();
     this.interval = setInterval(tick, 25);
   }
-  note({ midi, time, duration }, voice) {
-    const oscillator = this.context.createOscillator();
+  note({ midi, time, duration, velocity = 0.72 }, voice) {
     const gain = this.context.createGain();
-    oscillator.type = voice === 'bell' ? 'sine' : 'triangle';
-    oscillator.frequency.value = 440 * 2 ** ((midi - 69) / 12);
+    const envelope = Math.max(0.04, duration);
     gain.gain.setValueAtTime(0, time);
-    gain.gain.linearRampToValueAtTime(0.22, time + 0.012);
-    gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
-    oscillator.connect(gain).connect(this.master);
-    this.nodes.add(oscillator);
-    oscillator.onended = () => { oscillator.disconnect(); gain.disconnect(); this.nodes.delete(oscillator); };
-    oscillator.start(time); oscillator.stop(time + duration + 0.02);
+    gain.gain.linearRampToValueAtTime(0.18 * velocity, time + 0.007);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + envelope);
+    gain.connect(this.master);
+    const partials = voice === 'piano' ? [[1, 1], [2, 0.3], [3, 0.1]] : [[1, 1]];
+    let remaining = partials.length;
+    for (const [harmonic, level] of partials) {
+      const oscillator = this.context.createOscillator(), partialGain = this.context.createGain();
+      oscillator.type = voice === 'soft' ? 'triangle' : 'sine';
+      oscillator.frequency.value = 440 * 2 ** ((midi - 69) / 12) * harmonic;
+      partialGain.gain.value = level;
+      oscillator.connect(partialGain).connect(gain);
+      this.nodes.add(oscillator);
+      oscillator.onended = () => {
+        oscillator.disconnect(); partialGain.disconnect(); this.nodes.delete(oscillator);
+        if (--remaining === 0) gain.disconnect();
+      };
+      oscillator.start(time); oscillator.stop(time + envelope + 0.02);
+    }
   }
   setVolume(value) {
     if (this.master) this.master.gain.setTargetAtTime(value * 0.55, this.context.currentTime, 0.02);

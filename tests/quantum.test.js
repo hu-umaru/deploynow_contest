@@ -64,14 +64,14 @@ test('all presets round-trip through validated JSON', () => {
 });
 test('untrusted project validation rejects malformed gates, ranges and overlaps', () => {
   const cases = [
-    p => { p.version = 2; }, p => { p.bpm = 0; }, p => { p.volume = NaN; },
+    p => { p.version = 999; }, p => { p.bpm = 0; }, p => { p.volume = NaN; },
     p => { p.scale = 'toString'; }, p => { p.title = '<'.repeat(81); },
     p => { p.bars[0] = [{ type: 'H', q: 5, col: 0 }]; },
     p => { p.bars[0] = [{ type: 'RZ', q: 1, col: 0, angle: Infinity }]; },
     p => { p.bars[0] = [{ type: 'CNOT', q: 1, target: 1, col: 0 }]; },
     p => { p.bars[0] = [h(0, 0), h(0, 0)]; },
     p => { p.bars[0] = [{ type: 'CNOT', q: 0, target: 4, col: 0 }, h(2, 0)]; },
-    p => { p.recording = [0, 1, 2, 32]; }, p => { p.bars = []; },
+    p => { p.recording = Array(16).fill(32); }, p => { p.bars = []; },
   ];
   for (const mutate of cases) { const p = preset(); mutate(p); assert.throws(() => validateProject(p)); }
 });
@@ -81,8 +81,9 @@ test('placing gates resolves occupied CNOT spans and retains other columns', () 
 });
 test('chord and arpeggio mapping follow selected bits and exact bar timing', () => {
   const p = { ...preset(), bpm: 120, style: 'chord' };
-  assert.deepEqual(noteEvents(5, p, 10).map(e => [e.midi, e.time]), [[60, 10], [64, 10]]);
-  p.style = 'arpeggio'; const events = noteEvents(5, p, 10);
-  assert.equal(events.length, 8); assert.equal(events.at(-1).time, 11.75);
-  assert.deepEqual(events.map(e => e.midi), [60, 64, 60, 64, 60, 64, 60, 64]);
+  assert.deepEqual(noteEvents(5, p, 0, 10).map(e => [e.midi, e.time]), [[60, 10], [64, 10]]);
+  p.style = 'arpeggio'; const events = noteEvents(5, p, 0, 10);
+  assert.equal(events.length, 2); assert.equal(events.at(-1).time, 10.25);
+  assert.deepEqual(events.map(e => e.midi), [60, 64]);
+  assert.ok(events.every(e => e.time < 10.5));
 });

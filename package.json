@@ -1,9 +1,9 @@
 {
   "name": "quantum-beat-studio",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
-  "description": "Five qubits, four bars, infinite little discoveries.",
+  "description": "Turn piano scores into quantum remixes, one measurement per beat.",
   "engines": { "node": ">=22" },
   "scripts": {
     "dev": "node scripts/serve.mjs",

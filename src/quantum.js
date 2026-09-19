@@ -8,8 +8,17 @@ export function zeroState() {
   return state;
 }
 
-/** Mutates the state with a unitary gate. Columns are circuit time, not musical beats. */
+/** Mutates the state with a unitary gate. Primitive or within-column composite unitary; measurement is handled by the sequencer. */
 export function applyGate(state, gate) {
+  if (gate.type === 'INT') {
+    applyGate(state, { type: 'H', q: gate.q });
+    applyGate(state, { type: 'RZ', q: gate.q, angle: gate.angle });
+    return applyGate(state, { type: 'H', q: gate.q });
+  }
+  if (gate.type === 'PAIR') {
+    applyGate(state, { type: 'H', q: gate.q });
+    return applyGate(state, { type: 'CNOT', q: gate.q, target: gate.target });
+  }
   const mask = 1 << gate.q;
   if (gate.type === 'CNOT') {
     const target = 1 << gate.target;
@@ -71,4 +80,14 @@ export function sample(probs, random = Math.random) {
 
 export function bitString(index) {
   return Array.from({ length: QUBITS }, (_, q) => (index >> q) & 1).join('');
+}
+
+export function basisState(index = 0) {
+  const state = zeroState(); state.re[0] = 0; state.re[index] = 1; return state;
+}
+
+export function simulateColumn(gates, col, input = 0) {
+  const state = basisState(input);
+  gates.filter(g => g.col === col).sort((a, b) => a.q - b.q).forEach(g => applyGate(state, g));
+  return state;
 }
